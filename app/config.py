@@ -1,6 +1,13 @@
 import os
 from pathlib import Path
 
+from dotenv import load_dotenv
+from sqlalchemy.engine import URL
+
+ROOT = Path(__file__).resolve().parent.parent
+# Load <project>/.env regardless of the working directory; real environment variables take precedence
+load_dotenv(ROOT / ".env")
+
 
 def _bool(v: str) -> bool:
     return v.strip().lower() in ("1", "true", "yes", "on")
@@ -12,7 +19,24 @@ BUILD_SCRIPT = os.environ.get("BUILD_SCRIPT", "build.bat")
 POLL_INTERVAL = int(os.environ.get("POLL_INTERVAL", "60"))
 BUILD_EXISTING = _bool(os.environ.get("BUILD_EXISTING", "false"))
 GIT_BIN = os.environ.get("GIT_BIN", "git")
-DB_URL = os.environ.get("DB_URL", "sqlite:///./tags.db")
+def _db_url() -> str:
+    # 1) DB_URL wins; 2) otherwise build a PostgreSQL URL from DB_HOST/DB_PORT/DB_NAME/DB_USER/DB_PASSWORD
+    # (URL.create escapes special characters in the password); 3) fall back to local SQLite
+    if os.environ.get("DB_URL"):
+        return os.environ["DB_URL"]
+    if os.environ.get("DB_HOST"):
+        return URL.create(
+            "postgresql+psycopg",
+            username=os.environ.get("DB_USER", "postgres"),
+            password=os.environ.get("DB_PASSWORD") or None,
+            host=os.environ["DB_HOST"],
+            port=int(os.environ.get("DB_PORT", "5432")),
+            database=os.environ.get("DB_NAME", "git_tag_ci"),
+        ).render_as_string(hide_password=False)
+    return "sqlite:///./tags.db"
+
+
+DB_URL = _db_url()
 LOG_DIR = Path(os.environ.get("LOG_DIR", "./logs")).resolve()
 BUILD_TIMEOUT = int(os.environ.get("BUILD_TIMEOUT", "3600"))
 

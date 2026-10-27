@@ -6,7 +6,7 @@ generated from the commits between the previous tag with the same prefix and the
 
 ## Run (Windows, Git installed)
     pip install -r requirements.txt
-    # edit REPO_URL / WORK_DIR / BUILD_SCRIPT / TAG_PREFIXES in run.bat (see .env.example)
+    copy .env.example .env      # then edit REPO_URL / WORK_DIR / BUILD_SCRIPT / TAG_PREFIXES ...
     run.bat
 
 ## How a tag is handled
@@ -15,6 +15,14 @@ generated from the commits between the previous tag with the same prefix and the
 - Otherwise -> `pending` -> `building` -> `success` / `failed` (exit code of the script).
 - The script receives `BUILD_ARGS` (default `{params}`): `{tag}`, `{prefix}`, `{params}`, `{output}`, `{notes}`, `{prev}`.
 - Each tag gets `OUTPUT_DIR/<tag>/` containing `release_notes.md`.
+
+## Database and migrations
+- SQLite by default (`DB_URL=sqlite:///./tags.db`). For PostgreSQL set either
+  `DB_URL=postgresql+psycopg://user:password@host:5432/git_tag_ci` or the parts
+  `DB_HOST`, `DB_PORT`, `DB_NAME`, `DB_USER`, `DB_PASSWORD` (leave `DB_URL` unset). The database must already exist.
+- Schema is managed with Alembic. The service runs `alembic upgrade head` on startup, so nothing else is needed.
+  Databases created before Alembic was added are upgraded in place.
+- Manual use: `alembic upgrade head`, `alembic current`, `alembic revision --autogenerate -m "change"` (after editing `app/db.py`).
 
 ## API
 - `GET  /tags[?status=pending|building|success|failed|skipped|ignored|invalid]`
@@ -28,7 +36,7 @@ Private repos: use a URL with a token or configure a Git credential helper.
 
 ## Run as a Windows service (starts with Windows)
 1. Download [NSSM](https://nssm.cc/download) and put `nssm.exe` in PATH or in the `service/` folder.
-2. Configure `run.bat` (the service runs this file).
+2. Configure `.env` (the service runs `run.bat`, which loads it).
 3. Open cmd as **Administrator**:
        service\install_service.bat .\<user> <password>
    (use your own account so the service has your git credentials and Unity license; omit the arguments to run as LocalSystem)
