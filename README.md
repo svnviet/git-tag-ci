@@ -13,8 +13,9 @@ generated from the commits between the previous tag with the same prefix and the
 - Tag does not start with a configured prefix -> `ignored`.
 - Params contain characters outside `A-Za-z0-9_.+=@` -> `invalid` (never passed to cmd).
 - Otherwise -> `pending` -> `building` -> `success` / `failed` (exit code of the script).
-- The script receives `BUILD_ARGS` (default `{params}`): `{tag}`, `{prefix}`, `{params}`, `{output}`, `{notes}`, `{prev}`.
-- Each tag gets `OUTPUT_DIR/<tag>/` containing `release_notes.md`.
+- The script receives `BUILD_ARGS` (default `{params}`): `{tag}`, `{prefix}`, `{params}`, `{output}`, `{notes}`, `{prev}`, `{log}`.
+- "Previous tag" (for the release note) = the tag with the same prefix that was synced just before it (`discovered_at`).
+- Each tag gets `OUTPUT_DIR/<tag>/` containing `ReleaseNote.md`.
 
 ## Database and migrations
 - SQLite by default (`DB_URL=sqlite:///./tags.db`). For PostgreSQL set either

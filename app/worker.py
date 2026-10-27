@@ -4,6 +4,7 @@ import os
 import re
 import subprocess
 import threading
+from datetime import datetime, timedelta, timezone
 
 from sqlalchemy import select
 
@@ -19,7 +20,7 @@ _stop = threading.Event()
 def _git(*args: str, check: bool = True) -> str:
     r = subprocess.run(
         [config.GIT_BIN, *args], cwd=config.WORK_DIR if config.WORK_DIR.exists() else None,
-        capture_output=True, text=True,
+        capture_output=True, text=True, encoding="utf-8", errors="replace",
     )
     if check and r.returncode:
         raise RuntimeError(f"git {' '.join(args)} failed: {r.stderr.strip()}")
@@ -51,24 +52,24 @@ def _classify(name: str, first_run: bool) -> tuple[str, list[str]]:
 
 
 def prev_tag(name: str) -> str | None:
-    """Nearest earlier tag (by creation date) with the same prefix as `name`."""
+    """Tag with the same prefix that was synced (discovered) just before `name`."""
     prefix = (parse_tag(name) or ("", []))[0]
-    same = [t for t in _git("for-each-ref", "--sort=creatordate", "--format=%(refname:short)", "refs/tags").split()
-            if (parse_tag(t) or ("",))[0] == prefix]
+    with SessionLocal() as s:
+        rows = s.execute(select(Tag.name).order_by(Tag.discovered_at, Tag.name)).scalars().all()
+    same = [t for t in rows if (parse_tag(t) or ("",))[0] == prefix]
     i = same.index(name) if name in same else -1
     return same[i - 1] if i > 0 else None
 
 
 def write_release_notes(name: str, prev: str | None, out_dir) -> str:
-    rng = f"{prev}..{name}" if prev else name
-    cmd = ["log", "--no-merges", "--pretty=format:- %s (%h, %an)", rng]
+    """Write ReleaseNote.md: `git log <prev>..<tag> --pretty=format:"- %s"` under a title line."""
+    cmd = ["log", "--pretty=format:- %s", f"{prev}..{name}" if prev else name]
     if not prev:
         cmd.insert(1, "-n100")  # first tag of this prefix: limit to the latest 100 commits
     commits = _git(*cmd).strip() or "- (no new commits)"
-    date = _git("log", "-1", "--format=%ad", "--date=short", name).strip()
-    text = f"# Release notes {name}\n\n- Date: {date}\n- Previous tag: {prev or '(none)'}\n\n## Changes\n\n{commits}\n"
-    path = out_dir / "release_notes.md"
-    path.write_text(text, encoding="utf-8")
+    title = f"# Release Note - {prev} to {name}" if prev else f"# Release Note - {name}"
+    path = out_dir / "ReleaseNote.md"
+    path.write_text(f"{title}\n{commits}\n", encoding="utf-8")
     return str(path)
 
 
@@ -100,24 +101,34 @@ def sync_tags() -> int:
     with _lock:
         _ensure_repo()
         _git("fetch", "--tags", "--force", "--prune", "origin")
-        out = _git("for-each-ref", "--format=%(refname:short) %(*objectname) %(objectname)",
+        out = _git("for-each-ref", "--format=%(refname:short) %(*objectname) %(objectname) %(creatordate:unix)",
                    "--sort=creatordate", "refs/tags")
         found = []
         for line in out.splitlines():
             parts = line.split()
-            # annotated tag: *objectname is the commit; lightweight: only objectname
-            found.append((parts[0], parts[1] if len(parts) == 3 else parts[-1]))
+            # annotated tag: parts = name, commit, tag object, date; lightweight: name, commit, date.
+            # date = tagger date (annotated) or commit date (lightweight)
+            found.append((parts[0], parts[1], datetime.fromtimestamp(int(parts[-1]), timezone.utc)))
 
         with SessionLocal() as s:
             known = set(s.scalars(select(Tag.name)))
             first_run = not known
-            new = [(n, c) for n, c in found if n not in known]
-            for n, c in new:
+            new = [t for t in found if t[0] not in known]
+            base = now()
+            last = None
+            for n, c, git_date in new:
                 status, params = _classify(n, first_run)
-                s.add(Tag(name=n, commit=c, status=status, params=json.dumps(params)))
+                # First sync: the tags already exist, so use the git date as their time.
+                # Later syncs: use the moment they were discovered. Either way keep a strict order
+                # inside one batch (git order) with a 1 microsecond step.
+                at = git_date if first_run else base
+                if last is not None and at <= last:
+                    at = last + timedelta(microseconds=1)
+                last = at
+                s.add(Tag(name=n, commit=c, status=status, params=json.dumps(params), discovered_at=at))
             s.commit()
         if new:
-            log.info("new tags: %s", [n for n, _ in new])
+            log.info("new tags: %s", [t[0] for t in new])
         return len(new)
 
 
@@ -144,14 +155,16 @@ def build_tag(name: str) -> None:
                     tag.notes_path = write_release_notes(name, prev, out_dir)
                     s.commit()
                     safe_prev = prev if prev and _SAFE_PARAM.match(prev) else ""
-                    ctx = {"output": str(out_dir), "notes": tag.notes_path, "prev": safe_prev}
+                    ctx = {"output": str(out_dir), "notes": tag.notes_path, "prev": safe_prev,
+                           "log": str(out_dir / "build.log")}
                     params = _build_args(name, json.loads(tag.params or "[]"), ctx)
                     f.write(f"$ {script} {' '.join(params)}\n")
                     f.flush()
                     code = subprocess.run(
                         [*config.BAT_RUNNER, str(script), *params], cwd=config.WORK_DIR,
                         env={**os.environ, "TAG_NAME": name, "PREV_TAG": safe_prev,
-                             "OUTPUT_DIR": str(out_dir), "RELEASE_NOTES": tag.notes_path},
+                             "OUTPUT_DIR": str(out_dir), "RELEASE_NOTES": tag.notes_path,
+                             "BUILD_LOG": str(out_dir / "build.log")},
                         stdout=f, stderr=subprocess.STDOUT, timeout=config.BUILD_TIMEOUT,
                     ).returncode
                 except Exception as e:  # noqa: BLE001

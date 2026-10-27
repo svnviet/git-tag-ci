@@ -49,11 +49,12 @@ TAG_PARAM_SEP = os.environ.get("TAG_PARAM_SEP", "-")
 BAT_RUNNER = os.environ.get("BAT_RUNNER", "cmd /c").split()
 
 # Argument template passed to the script. Placeholders: {tag} full tag name, {prefix}, {params} (parts after the prefix split by TAG_PARAM_SEP),
-# {output} per-tag output dir, {notes} release notes file, {prev} previous tag with the same prefix
+# {output} per-tag output dir, {notes} release notes file, {prev} previous tag with the same prefix,
+# {log} path for the build tool's own log (OUTPUT_DIR/<tag>/build.log)
 BUILD_ARGS = os.environ.get("BUILD_ARGS", "{params}").split()
 
 # Flags for git clean before building. Do NOT use -x: it would delete ignored dirs such as Unity Library/
 GIT_CLEAN_ARGS = os.environ.get("GIT_CLEAN_ARGS", "-fd").split()
 
-# Each tag gets its own output dir: OUTPUT_DIR/<tag>/ (also holds release_notes.md)
+# Each tag gets its own output dir: OUTPUT_DIR/<tag>/ (also holds ReleaseNote.md)
 OUTPUT_DIR = Path(os.environ.get("OUTPUT_DIR", "./output")).resolve()
