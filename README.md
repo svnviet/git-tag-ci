@@ -28,8 +28,14 @@ generated from the commits between the previous tag with the same prefix and the
 ## API
 - `GET  /tags[?status=pending|building|success|failed|skipped|ignored|invalid]`
 - `GET  /tags/{name}` | `GET /tags/{name}/log` | `GET /tags/{name}/release-notes`
+- Downloads, named after the tag, available once a build has finished (success **or** failed; 409 while pending/building):
+  - `GET /tags/{name}/download/output` -> `<tag>.zip` (whole output folder)
+  - `GET /tags/{name}/download/release-note` -> `<tag>.md`
+  - `GET /tags/{name}/download/log` -> `<tag>.log` (what the build script printed)
+  - `GET /tags/{name}/download/build-log` -> `<tag>-build.log` (the build tool's own log, e.g. Unity's)
 - `POST /tags/{name}/build` - build again
 - `POST /sync` - fetch now instead of waiting for the next poll
+- Web UI: http://localhost:8000/ (tag list with status filter, download links, rebuild and sync buttons; `/ui/tags/<tag>` for details)
 - Swagger: http://localhost:8000/docs
 
 Notes: on the first run, tags that already exist are marked `skipped` (set `BUILD_EXISTING=true` to build them all).

@@ -19,6 +19,8 @@ BUILD_SCRIPT = os.environ.get("BUILD_SCRIPT", "build.bat")
 POLL_INTERVAL = int(os.environ.get("POLL_INTERVAL", "60"))
 BUILD_EXISTING = _bool(os.environ.get("BUILD_EXISTING", "false"))
 GIT_BIN = os.environ.get("GIT_BIN", "git")
+
+
 def _db_url() -> str:
     # 1) DB_URL wins; 2) otherwise build a PostgreSQL URL from DB_HOST/DB_PORT/DB_NAME/DB_USER/DB_PASSWORD
     # (URL.create escapes special characters in the password); 3) fall back to local SQLite
@@ -41,7 +43,11 @@ LOG_DIR = Path(os.environ.get("LOG_DIR", "./logs")).resolve()
 BUILD_TIMEOUT = int(os.environ.get("BUILD_TIMEOUT", "3600"))
 
 # Only tags starting with one of these prefixes are built (comma separated)
-TAG_PREFIXES = [p.strip() for p in os.environ.get("TAG_PREFIXES", "release-").split(",") if p.strip()]
+TAG_PREFIXES = [
+    p.strip()
+    for p in os.environ.get("TAG_PREFIXES", "release-").split(",")
+    if p.strip()
+]
 # The part after the prefix is split by this separator into params passed to the script
 TAG_PARAM_SEP = os.environ.get("TAG_PARAM_SEP", "-")
 

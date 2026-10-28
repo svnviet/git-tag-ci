@@ -1,0 +1,28 @@
+{% extends "base.html" %}
+{% from "_downloads.html" import downloads %}
+{% block title %}{{ t.name }} - git-tag-ci{% endblock %}
+{% block body %}
+<header>
+  <div><h1>{{ t.name }}</h1><a href="/">&larr; all tags</a></div>
+  {% if t.status in ("success", "failed", "skipped") %}<button onclick="act('/tags/{{ t.name | urlencode }}/build', this)">Build again</button>{% endif %}
+</header>
+<div class="card">
+<dl>
+  <dt>Status</dt><dd><span class="badge {{ t.status }}">{{ t.status }}</span> {% if t.exit_code is not none %}(exit code {{ t.exit_code }}){% endif %}</dd>
+  <dt>Commit</dt><dd>{{ t.commit }}</dd>
+  <dt>Previous tag</dt><dd>{{ t.prev_tag or "-" }}</dd>
+  <dt>Params</dt><dd>{{ t.params }}</dd>
+  <dt>Discovered</dt><dd>{{ t.discovered_at | dt }} UTC</dd>
+  <dt>Started</dt><dd>{{ t.started_at | dt }}</dd>
+  <dt>Finished</dt><dd>{{ t.finished_at | dt }} ({{ t | duration }})</dd>
+  <dt>Output folder</dt><dd>{{ t.output_dir or "-" }}</dd>
+  <dt>Download</dt><dd>{{ downloads(t, finished) }}</dd>
+</dl>
+</div>
+
+<h2>Release note</h2>
+<div class="card"><pre>{{ notes if notes is not none else "(not generated yet)" }}</pre></div>
+
+<h2>Log (last 200 lines)</h2>
+<div class="card"><pre>{{ log_tail if log_tail is not none else "(no log yet)" }}</pre></div>
+{% endblock %}

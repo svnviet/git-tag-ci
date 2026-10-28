@@ -1,0 +1,12 @@
+{# links to the download endpoints; only offered once a build has finished (success or failed) #}
+{% macro downloads(t, finished) %}
+  {% if finished %}
+    {% set base = "/tags/" ~ (t.name | urlencode) ~ "/download" %}
+    <span class="dl">
+      {% if t.output_dir %}<a href="{{ base }}/output">Output</a>{% endif %}
+      {% if t.notes_path %}<a href="{{ base }}/release-note">Release note</a>{% endif %}
+      {% if t.log_path %}<a href="{{ base }}/log">Log</a>{% endif %}
+      {% if t.output_dir %}<a href="{{ base }}/build-log">Build log</a>{% endif %}
+    </span>
+  {% else %}<span class="off">-</span>{% endif %}
+{% endmacro %}

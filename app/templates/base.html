@@ -1,0 +1,46 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>{% block title %}git-tag-ci{% endblock %}</title>
+<style>
+  :root { --bg:#f6f7f9; --card:#fff; --fg:#1b1f24; --muted:#6a737d; --line:#e1e4e8; --link:#0b5fff;
+          --ok:#1a7f37; --bad:#cf222e; --run:#9a6700; --idle:#6a737d; }
+  @media (prefers-color-scheme: dark) { :root { --bg:#0f1318; --card:#171c23; --fg:#e6e9ee; --muted:#8b95a1;
+          --line:#2a313b; --link:#6ea2ff; --ok:#3fb950; --bad:#ff7b72; --run:#d29922; --idle:#8b95a1; } }
+  body { margin:0; background:var(--bg); color:var(--fg); font:14px/1.5 system-ui, sans-serif; }
+  main { max-width:1200px; margin:0 auto; padding:24px 16px; }
+  a { color:var(--link); text-decoration:none } a:hover { text-decoration:underline }
+  h1 { font-size:20px; margin:0 0 4px } .muted { color:var(--muted) }
+  header { display:flex; flex-wrap:wrap; gap:12px; align-items:center; justify-content:space-between; margin-bottom:16px }
+  .card { background:var(--card); border:1px solid var(--line); border-radius:8px; overflow-x:auto }
+  table { border-collapse:collapse; width:100% } th, td { text-align:left; padding:8px 12px; border-bottom:1px solid var(--line); white-space:nowrap }
+  th { font-weight:600; color:var(--muted); font-size:12px; text-transform:uppercase; letter-spacing:.04em }
+  tr:last-child td { border-bottom:0 }
+  .badge { display:inline-block; padding:1px 8px; border-radius:10px; font-size:12px; font-weight:600; border:1px solid currentColor }
+  .success { color:var(--ok) } .failed, .invalid { color:var(--bad) } .building, .pending { color:var(--run) }
+  .skipped, .ignored { color:var(--idle) }
+  .filters a { margin-right:10px } .filters .on { font-weight:700; text-decoration:underline }
+  button { font:inherit; padding:4px 10px; border:1px solid var(--line); border-radius:6px; background:var(--card); color:var(--fg); cursor:pointer }
+  button:hover { border-color:var(--link) }
+  .dl a { margin-right:10px } .off { color:var(--muted) }
+  pre { margin:0; padding:12px; overflow-x:auto; font:12px/1.5 ui-monospace, monospace; white-space:pre-wrap; word-break:break-word }
+  dl { display:grid; grid-template-columns:max-content 1fr; gap:4px 16px; margin:0; padding:12px } dt { color:var(--muted) } dd { margin:0; word-break:break-all }
+  h2 { font-size:15px; margin:20px 0 8px }
+</style>
+</head>
+<body>
+<main>
+  {% block body %}{% endblock %}
+</main>
+<script>
+  async function act(url, btn) {
+    btn.disabled = true;
+    const r = await fetch(url, { method: "POST" });
+    if (!r.ok) { btn.disabled = false; alert((await r.json()).detail || "request failed"); return; }
+    setTimeout(() => location.reload(), 600);
+  }
+</script>
+</body>
+</html>

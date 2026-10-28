@@ -8,7 +8,9 @@ from . import config
 engine = create_engine(
     config.DB_URL,
     pool_pre_ping=True,
-    connect_args={"check_same_thread": False} if config.DB_URL.startswith("sqlite") else {},
+    connect_args=(
+        {"check_same_thread": False} if config.DB_URL.startswith("sqlite") else {}
+    ),
 )
 SessionLocal = sessionmaker(engine, expire_on_commit=False)
 
@@ -34,9 +36,15 @@ class Tag(Base):
     notes_path: Mapped[str | None] = mapped_column(String(512), default=None)
     exit_code: Mapped[int | None] = mapped_column(default=None)
     log_path: Mapped[str | None] = mapped_column(String(512), default=None)
-    discovered_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=now)
-    started_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), default=None)
-    finished_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), default=None)
+    discovered_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), default=now
+    )
+    started_at: Mapped[datetime | None] = mapped_column(
+        DateTime(timezone=True), default=None
+    )
+    finished_at: Mapped[datetime | None] = mapped_column(
+        DateTime(timezone=True), default=None
+    )
 
 
 def init_db() -> None:

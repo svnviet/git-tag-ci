@@ -4,3 +4,4 @@ sqlalchemy>=2.0
 python-dotenv
 alembic
 psycopg[binary]
+jinja2

@@ -4,6 +4,7 @@ Revision ID: 0001
 Revises:
 Create Date: 2026-10-27
 """
+
 import sqlalchemy as sa
 from alembic import op
 
@@ -28,7 +29,9 @@ def upgrade() -> None:
             "tags",
             sa.Column("name", sa.String(255), primary_key=True),
             sa.Column("commit", sa.String(64), nullable=False, server_default=""),
-            sa.Column("status", sa.String(16), nullable=False, server_default="pending"),
+            sa.Column(
+                "status", sa.String(16), nullable=False, server_default="pending"
+            ),
             sa.Column("params", sa.String(512), nullable=False, server_default=""),
             sa.Column("prev_tag", sa.String(255)),
             sa.Column("output_dir", sa.String(512)),
